@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Assets.Scripts.Building
 {
@@ -12,10 +11,7 @@ namespace Assets.Scripts.Building
         private void OnTriggerEnter(Collider other)
         {
             if (other.CompareTag("Environment"))
-            {
-                Debug.Log("DAFAQ");
                 _blockingCount++;
-            }
         }
 
         private void OnTriggerExit(Collider other)

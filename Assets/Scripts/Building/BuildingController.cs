@@ -1,47 +1,39 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.AI;
+using Assets.Scripts.Environment;
+using UnityEngine;
 
 namespace Assets.Scripts.Building
 {
-    public class BuildingController : MonoBehaviour
+    public class BuildingController : MonoBehaviour, IBuildingController
     {
-        [SerializeField] private Camera mainCamera;
-        [SerializeField] private float gridSize = 1f;
-        [SerializeField] private GameObject testPrefab;
-        [SerializeField] private Material transparentMaterial;
+        private Camera mainCamera;
         private BuildingModel _model;
         private BuildingView _view;
+        private IBuildingInput _input;
 
-        private void Awake()
+        public void Initialize(Camera camera, BuildingModel model, BuildingView view, IBuildingInput input)
         {
-            _model = new BuildingModel(gridSize);
-            _view = new BuildingView(transparentMaterial);
+            mainCamera = camera;
+            _model = model;
+            _view = view;
+            _input = input;
+
+            _input.OnRotateLeft += () => Rotate(-1);
+            _input.OnRotateRight += () => Rotate(1);
+            _input.OnCancelBuild += CancelBuilding;
+            _input.OnConfirmBuild += TryPlaceBuilding;
         }
 
         public void StartBuilding(GameObject prefab)
         {
+            if (_model.SelectedPrefab != null)
+                return;
             _model.SetSelectedPrefab(prefab);
             _view.ShowPreview(prefab);
         }
 
-        private void Update()
+        private void TryPlaceBuilding()
         {
-            if (Input.GetKeyDown(KeyCode.G))
-            {
-                StartBuilding(testPrefab);
-            }
-            if (Input.GetKeyDown(KeyCode.Q))
-            {
-                Rotate(-1);
-            }
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                Rotate(1);
-            }
-            if (Input.GetKeyDown(KeyCode.X))
-            {
-                CancelBuilding();
-            }
-
             if (_model.SelectedPrefab == null) return;
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
@@ -54,23 +46,20 @@ namespace Assets.Scripts.Building
                     Vector3 snapPos = _model.GetSnappedPosition(hit.point);
                     _view.UpdatePreviewPosition(snapPos);
 
-                    if (Input.GetMouseButtonDown(0))
-                        PlaceBuilding(_view.GetPreviewTransform());
-
+                    PlaceBuilding(_view.GetPreviewTransform());
                     break;
                 }
             }
-
         }
 
         private void PlaceBuilding(Transform previewTransform)
         {
-            if (!_view.CanBuild)
-                return;
+            if (!_view.CanBuild) return;
 
-            Instantiate(_model.SelectedPrefab, previewTransform.position, previewTransform.rotation);
+            var interactableObject =Instantiate(_model.SelectedPrefab, previewTransform.position, previewTransform.rotation);
             _view.HidePreview();
             _model.SetSelectedPrefab(null);
+            InteractableFinder.Instance.RegisterInteractable(interactableObject.GetComponent<InteractableItem>());
         }
 
         private void CancelBuilding()
@@ -82,15 +71,29 @@ namespace Assets.Scripts.Building
             }
         }
 
-        /// <summary>
-        /// Rotates the building preview in the specified direction.
-        /// </summary>
-        /// <param name="direction"> "-1" - to the left, 1 - to the right .</param>
         private void Rotate(int direction)
         {
             if (_view.HasPreview)
             {
-                _view.RotatePreview(90f*direction);
+                _view.RotatePreview(90f * direction);
+            }
+        }
+
+        private void Update()
+        {
+            if (_model?.SelectedPrefab == null) return;
+
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit[] hits = Physics.RaycastAll(ray);
+
+            foreach (var hit in hits)
+            {
+                if (hit.collider.CompareTag("Floor"))
+                {
+                    Vector3 snapPos = _model.GetSnappedPosition(hit.point);
+                    _view.UpdatePreviewPosition(snapPos);
+                    break;
+                }
             }
         }
     }

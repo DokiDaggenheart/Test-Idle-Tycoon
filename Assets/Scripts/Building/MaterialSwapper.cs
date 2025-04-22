@@ -25,9 +25,8 @@ namespace Assets.Scripts.Building
         public void RestoreOriginalMaterials()
         {
             foreach (var kvp in _originalMaterials)
-            {
                 kvp.Key.materials = kvp.Value;
-            }
+
             _originalMaterials.Clear();
         }
     }
