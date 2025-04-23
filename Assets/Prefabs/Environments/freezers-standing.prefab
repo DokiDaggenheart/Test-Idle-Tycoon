@@ -187,7 +187,7 @@ MonoBehaviour:
   cost: 200
   upgradeBasicCost: 500
   itemID: 1
-  productCostMultiplier: 1
+  productCostMultiplier: 2
   upgradeCostMultiplier: 400
 --- !u!114 &-33524096672202200
 MonoBehaviour:
